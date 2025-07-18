@@ -1,0 +1,88 @@
+# ------------------------
+# OS / System
+# ------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------
+# Python
+# ------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-log.txt
+htmlcov/
+.tox/
+coverage.xml
+.cache/
+.pytest_cache/
+.mypy_cache/
+.vscode/
+.env
+.env.*
+
+# ------------------------
+# FastAPI / Uvicorn / Starlette
+instance/
+*.log
+*.db
+*.sqlite3
+
+# ------------------------
+# Virtualenv
+# ------------------------
+venv/
+ENV/
+env/
+.venv/
+
+# ------------------------
+# PyCharm
+# ------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ------------------------
+# Alembic (optional)
+# Uncomment if you want to ignore migrations
+#migrations/
+#alembic/
+
+# ------------------------
+# Database Dumps / Secrets
+# ------------------------
+*.sql
+*.dump
+*.bak
+
+# ------------------------
+# Docker (optional)
+# ------------------------
+*.pid
+docker-compose.override.yml
+
+# ------------------------
+# Jupyter / IPython
+# ------------------------
+.ipynb_checkpoints/
+
+# ------------------------
+# Logs
+# ------------------------
+*.log
+*.out
+*.err
+
+# ------------------------
+# VS Code (optional if shared dev)
+# ------------------------
+.vscode/
