@@ -50,7 +50,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         return response
 
 def register_middleware(app):
-    app.middleware("http")(log_timing_middleware)
-    app.middleware("http")(log_request)
+    # app.middleware("http")(log_timing_middleware)
+    # app.middleware("http")(log_request)
     app.middleware("http")(exception_handler)
     app.add_middleware(RequestContextMiddleware)
