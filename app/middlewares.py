@@ -1,7 +1,10 @@
 from fastapi import Request
-from logger import logger
+import logging
+from logging_config import logger
 import time
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("hexagon")
 
 async def log_request(request: Request, call_next):
     logger.info(f" {request.method} {request.url.path}")
@@ -27,7 +30,9 @@ async def exception_handler(request: Request, call_next):
             content={"message": str(e)},
         )
 
+
+
 def register_middleware(app):
     app.middleware("http")(log_timing_middleware)
-    app.add_middleware(log_request)
-    app.add_middleware(exception_handler)
+    app.middleware("http")(log_request)
+    app.middleware("http")(exception_handler)
