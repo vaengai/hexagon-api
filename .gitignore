@@ -25,8 +25,8 @@ coverage.xml
 .pytest_cache/
 .mypy_cache/
 .vscode/
-.env.local
-.env.*
+#.env.local
+#.env.*
 
 # ------------------------
 # FastAPI / Uvicorn / Starlette
