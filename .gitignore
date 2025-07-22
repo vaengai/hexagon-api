@@ -25,7 +25,7 @@ coverage.xml
 .pytest_cache/
 .mypy_cache/
 .vscode/
-.env
+.env.local
 .env.*
 
 # ------------------------
