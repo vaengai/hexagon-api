@@ -66,17 +66,17 @@ def get_habit(habit_id: str, db: Session = Depends(get_db)):
     return habit
 
 
-@router.patch("/habit/{habit_id}/status/{status}", response_model=HabitRead)
-def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_db)):
-    logger.info(f"Updating status of habit {habit_id} to {status}")
-    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+@router.patch("/habit/{title}/status/{status}", response_model=HabitRead)
+def update_status(title: str, status: HabitStatus, db: Session = Depends(get_db)):
+    logger.info(f"Updating status of habit {title} to {status}")
+    habit = db.query(Habit).filter(Habit.title.ilike((title.strip()))).first()
     if not habit:
-        logger.info(f"Habit with id {habit_id} not found")
+        logger.info(f"Habit with id {title} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
     habit.status = status.value
     db.commit()
     db.refresh(habit)
-    logger.info(f"Updated habit {habit_id} with status {status}")
+    logger.info(f"Updated habit {title} with status {status}")
     return habit
 
 @router.put("/habit/{habit_id}", response_model=HabitRead)
