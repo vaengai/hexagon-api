@@ -11,6 +11,7 @@ logger = logging.getLogger("hexagon")
 
 origins = [
     "http://localhost:5173",
+    "https://hexagon-1ny1.onrender.com"
 ]
 
 
