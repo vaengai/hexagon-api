@@ -1,4 +1,4 @@
-from schemas import HabitRead, HabitCreate
+from schemas import HabitRead, HabitCreate, HabitStatus
 from database import Base, engine, get_db
 from fastapi import FastAPI
 from models import Habit
@@ -65,6 +65,19 @@ def get_habit(habit_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Habit not found")
     return habit
 
+
+@router.patch("/habit/{habit_id}/status/{status}", response_model=HabitRead)
+def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_db)):
+    logger.info(f"Updating status of habit {habit_id} to {status}")
+    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+    if not habit:
+        logger.info(f"Habit with id {habit_id} not found")
+        raise HTTPException(status_code=404, detail="Habit not found")
+    habit.status = status.value
+    db.commit()
+    db.refresh(habit)
+    logger.info(f"Updated habit {habit_id} with status {status}")
+    return habit
 
 @router.put("/habit/{habit_id}", response_model=HabitRead)
 def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends(get_db)):
