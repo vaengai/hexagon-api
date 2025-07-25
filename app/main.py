@@ -79,6 +79,19 @@ def update_status(title: str, status: HabitStatus, db: Session = Depends(get_db)
     logger.info(f"Updated habit {title} with status {status}")
     return habit
 
+@router.patch("/habit/{id}/toggle-active", response_model=HabitRead)
+def toggle_status(id: str, db: Session = Depends(get_db)):
+    logger.info(f"Toggling 'active' state of habit {id}")
+    habit = db.query(Habit).filter(Habit.id == id).first()
+    if not habit:
+        logger.info(f"Habit with id {id} not found")
+        raise HTTPException(status_code=404, detail="Habit not found")
+    habit.active = not habit.active
+    db.commit()
+    db.refresh(habit)
+    logger.info(f"Updated habit {id} with active {habit.status}")
+    return habit
+
 @router.put("/habit/{habit_id}", response_model=HabitRead)
 def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends(get_db)):
     logger.info(f"Updating habit {habit_id}")
