@@ -30,17 +30,16 @@ async def log_timing_middleware(request: Request, call_next):
     return response
 
 
-async def exception_handler(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        return response
-    except Exception as e:
-        logger.exception(f"Exception occurred on {request.method} {request.url.path}")
-        return JSONResponse(
-            status_code=500,
-            content={"message": str(e)},
-        )
-
+class ExceptionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        try:
+            return await call_next(request)
+        except Exception as e:
+            logger.exception(f"Exception occurred on {request.method} {request.url.path}")
+            return JSONResponse(
+                status_code=500,
+                content={"message": str(e)},
+            )
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -61,9 +60,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
 
 def register_middleware(app):
-    # app.middleware("http")(log_timing_middleware)
-    # app.middleware("http")(log_request)
-    app.middleware("http")(exception_handler)
-    app.add_middleware(RequestContextMiddleware)
+
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
                        allow_headers=["*"])
+    app.add_middleware(ExceptionMiddleware)
+    app.add_middleware(RequestContextMiddleware)
+
