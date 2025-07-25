@@ -5,8 +5,14 @@ import time
 import uuid
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger("hexagon")
+
+origins = [
+    "http://localhost:5173",
+]
+
 
 async def log_request(request: Request, call_next):
     logger.info(f" {request.method} {request.url.path}")
@@ -14,12 +20,14 @@ async def log_request(request: Request, call_next):
     logger.info(f" {request.method} {request.url.path} - {response.status_code}")
     return response
 
+
 async def log_timing_middleware(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     duration = round(time.time() - start_time, 4)
     logger.info(f" {request.method} {request.url.path} took {duration} seconds")
     return response
+
 
 async def exception_handler(request: Request, call_next):
     try:
@@ -31,6 +39,7 @@ async def exception_handler(request: Request, call_next):
             status_code=500,
             content={"message": str(e)},
         )
+
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -49,8 +58,11 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         response.headers["X-Process-Time"] = f"{process_time:.4f}s"
         return response
 
+
 def register_middleware(app):
     # app.middleware("http")(log_timing_middleware)
     # app.middleware("http")(log_request)
     app.middleware("http")(exception_handler)
     app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
+                       allow_headers=["*"])
