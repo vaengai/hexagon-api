@@ -11,7 +11,7 @@ class HabitBase(BaseModel):
     title: constr(min_length=1, max_length=100)
     status: HabitStatus
     category: constr(min_length=1, max_length=100)
-    progress: conint(gt=0)
+    progress: int
     goal: conint(gt=0)
     active: bool
 
