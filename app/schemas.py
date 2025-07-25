@@ -7,12 +7,20 @@ class HabitStatus(str, Enum):
     pending = "PENDING"
     done = "DONE"
 
+class HabitFrequency(str, Enum):
+    daily = "DAILY"
+    weekly = "WEEKLY"
+    biweekly = "BIWEEKLY"
+    monthly = "MONTHLY"
+
+
 class HabitBase(BaseModel):
     title: constr(min_length=1, max_length=100)
     status: HabitStatus
     category: constr(min_length=1, max_length=100)
     progress: int
-    goal: conint(gt=0)
+    target: conint(gt=0)
+    frequency: HabitFrequency
     active: bool
 
     @root_validator(pre=True)

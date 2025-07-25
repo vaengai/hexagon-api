@@ -12,7 +12,8 @@ class Habit(Base):
     status = Column(String)
     category = Column(String)
     progress = Column(Integer)
-    goal = Column(Integer)
+    target = Column(Integer)
+    frequency = Column(String)
     active = Column(Boolean)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(
