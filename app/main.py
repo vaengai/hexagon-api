@@ -73,6 +73,8 @@ def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_
     if not habit:
         logger.info(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
+    if habit.status != HabitStatus.done.value and status == HabitStatus.done:
+        habit.progress = habit.progress + 1
     habit.status = status.value
     db.commit()
     db.refresh(habit)
