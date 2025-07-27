@@ -4,14 +4,13 @@ from datetime import datetime
 from enum import Enum
 
 class HabitStatus(str, Enum):
-    pending = "PENDING"
-    done = "DONE"
+    pending = "Pending"
+    done = "Done"
 
 class HabitFrequency(str, Enum):
-    daily = "DAILY"
-    weekly = "WEEKLY"
-    biweekly = "BIWEEKLY"
-    monthly = "MONTHLY"
+    daily = "Day"
+    weekly = "Week"
+    monthly = "Month"
 
 
 class HabitBase(BaseModel):
