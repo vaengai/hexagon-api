@@ -1,5 +1,5 @@
-from models import Base
-from database import engine
+from app.models import Base
+from app.database import engine
 
 # ⚠️ DANGER: This drops all tables
 Base.metadata.drop_all(bind=engine)

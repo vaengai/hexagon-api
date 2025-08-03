@@ -22,11 +22,6 @@ class HabitBase(BaseModel):
     frequency: HabitFrequency
     active: bool
 
-    @root_validator(pre=True)
-    def check_title_unique(cls, values):
-        # Note: This validator cannot check database constraints.
-        # To enforce title uniqueness, perform a DB query in the API route or service and raise ValueError if needed.
-        return values
 
 
 class HabitCreate(HabitBase):

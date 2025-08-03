@@ -1,4 +1,4 @@
-from database import Base
+from app.database import Base
 import uuid
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from datetime import datetime, timezone
@@ -30,7 +30,7 @@ class HexagonUser(Base):
     id = Column(String, primary_key=True)
     email = Column(String, index=True, unique=True, nullable=False)
     full_name = Column(String, nullable=False)
-    metadata = Column(JSONB)
+    clerk_metadata = Column(JSONB, name="metadata")
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,

@@ -1,16 +1,17 @@
 from app.auth import get_current_user
-from schemas import HabitRead, HabitCreate, HabitStatus
-from database import Base, engine, get_db
-from models import Habit, HexagonUser
+from app.schemas import HabitRead, HabitCreate, HabitStatus
+from app.database import Base, engine, get_db
+from app.models import Habit, HexagonUser
 from typing import List
 import logging
 from app.clerk_client import clerk
 from fastapi import HTTPException, status, Depends, APIRouter, FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from fastapi.security import HTTPBearer
 
 Base.metadata.create_all(bind=engine)
-from middlewares import register_middleware
+from app.middlewares import register_middleware
 from app.user_service import get_or_create_local_user
 app = FastAPI(title="Habit Tracker API")
 logger = logging.getLogger("hexagon")
@@ -20,6 +21,7 @@ logger.info("Starting the app...")
 register_middleware(app)
 
 router = APIRouter()
+security = HTTPBearer()
 
 @router.get("/")
 async def root():
@@ -30,7 +32,7 @@ async def healthcheck():
     return JSONResponse(content={"status": "ok"})
 
 @router.post("/habit", response_model=HabitRead, status_code=status.HTTP_201_CREATED)
-def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
+def create_habit(habit: HabitCreate, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Creating habit {habit.title}")
     existing = db.query(Habit).filter(Habit.title.ilike(habit.title.strip())).first()
     if existing:
@@ -50,13 +52,13 @@ def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
 # -------------------- CRUD Endpoints for Habit --------------------
 
 @router.get("/habit", response_model=List[HabitRead])
-def get_habits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_habits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Retrieving habits {skip}/{limit}")
     return db.query(Habit).offset(skip).limit(limit).all()
 
 
 @router.get("/habit/{habit_id}", response_model=HabitRead)
-def get_habit(habit_id: str, db: Session = Depends(get_db)):
+def get_habit(habit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Retrieving habit {habit_id}")
     habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if not habit:
@@ -66,7 +68,7 @@ def get_habit(habit_id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/habit/{habit_id}/status/{status}", response_model=HabitRead)
-def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_db)):
+def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Updating status of habit {habit_id} to {status}")
     habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if not habit:
@@ -81,7 +83,7 @@ def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_
     return habit
 
 @router.patch("/habit/{id}/toggle-active", response_model=HabitRead)
-def toggle_status(id: str, db: Session = Depends(get_db)):
+def toggle_status(id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Toggling 'active' state of habit {id}")
     habit = db.query(Habit).filter(Habit.id == id).first()
     if not habit:
@@ -94,7 +96,7 @@ def toggle_status(id: str, db: Session = Depends(get_db)):
     return habit
 
 @router.put("/habit/{habit_id}", response_model=HabitRead)
-def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends(get_db)):
+def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Updating habit {habit_id}")
     habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if not habit:
@@ -118,7 +120,7 @@ def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends
 
 
 @router.delete("/habit/{habit_id}", status_code=status.HTTP_200_OK)
-def delete_habit(habit_id: str, db: Session = Depends(get_db)):
+def delete_habit(habit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Deleting habit {habit_id}")
     habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if not habit:
@@ -130,7 +132,7 @@ def delete_habit(habit_id: str, db: Session = Depends(get_db)):
     return {"message": f"Habit {habit_id} deleted successfully"}
 
 @router.get("/profile")
-def get_profile(user=Depends(get_current_user), db: Session = Depends(get_db)):
+def get_profile(user=Depends(get_current_user), db: Session = Depends(get_db), token=Depends(security)):
     local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
     return {
         "local_user": {

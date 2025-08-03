@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.clerk_client import clerk
-from models import HexagonUser
+from app.models import HexagonUser
 import logging
 
 logger = logging.getLogger("hexagon")
@@ -13,7 +13,7 @@ def get_or_create_local_user(clerk_user_id: str, db: Session) -> HexagonUser:
             id=clerk_user_id,
             email=clerk_user.email_addresses[0].email_address,
             full_name=f"{clerk_user.first_name} {clerk_user.last_name}",
-            metadata=clerk_user.metadata,
+            clerk_metadata=clerk_user.metadata,
         )
         db.add(local_user)
         db.commit()

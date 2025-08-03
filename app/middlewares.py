@@ -1,6 +1,6 @@
 from fastapi import Request
 import logging
-from logging_config import logger
+from app.logging_config import logger
 import time
 import uuid
 from fastapi.responses import JSONResponse
