@@ -1,39 +1,46 @@
-import os
+import requests
+from jose import jwt
+from jose.exceptions import JWTError
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from functools import lru_cache
 
-import requests
-from fastapi import HTTPException
-from fastapi.params import Header
-from jose import jwt, jwk, JWTError
+security = HTTPBearer()
 
+JWKS_URL = "https://pleased-hedgehog-10.clerk.accounts.dev/.well-known/jwks.json"
+ALGORITHMS = ["RS256"]
+AUDIENCE = "pk_test_cGxlYXNlZC1oZWRnZWhvZy0xMC5jbGVyay5hY2NvdW50cy5kZXYk"  # Or your app URL
+ISSUER = "https://pleased-hedgehog-10.clerk.accounts.dev"
 
 @lru_cache()
-def get_clerk_jwks():
-    return requests.get(
-        f"https://pleased-hedgehog-10.clerk.accounts.dev/.well-known/jwks.json",
-        headers={"Authorization": f"Bearer {os.getenv('CLERK_API_KEY')}"},
-    ).json()
+def get_jwks():
+    return requests.get(JWKS_URL).json()
 
-
-def get_current_user(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing token")
-    token = authorization.split(" ")[1]
-    header = jwt.get_unverified_header(token)
-    jwks_data = get_clerk_jwks()
-    key = next((k for k in jwks_data["keys"] if k["kid"] == header["kid"]), None)
-
-    if not key:
-        raise HTTPException(status_code=401, detail="Public key not found")
-
+def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        public_key = jwk.construct(key)
+        headers = jwt.get_unverified_header(token.credentials)
+        jwks = get_jwks()
+
+        key = next((k for k in jwks["keys"] if k["kid"] == headers["kid"]), None)
+        if not key:
+            raise HTTPException(status_code=401, detail="Public key not found")
+
+        public_key = {
+            "kty": key["kty"],
+            "kid": key["kid"],
+            "use": key["use"],
+            "n": key["n"],
+            "e": key["e"]
+        }
+
         payload = jwt.decode(
-            token,
-            public_key.to_pem().decode("utf-8"),
-            algorithms=["RS256"],
-            audience=os.getenv("CLERK_FRONTEND_API")
+            token.credentials,
+            public_key,
+            algorithms=ALGORITHMS,
+            audience=AUDIENCE,
+            issuer=ISSUER,
         )
+
         return payload
     except JWTError as e:
-        raise HTTPException(status_code=401, detail="Token invalid or expired")
+        raise HTTPException(status_code=401, detail="Token verification failed")
