@@ -21,3 +21,5 @@ typing-inspection==0.4.1
 typing_extensions==4.14.1
 uvicorn==0.35.0
 flake8
+requests~=2.32.4
+python-jose~=3.5.0
