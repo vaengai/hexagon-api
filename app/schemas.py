@@ -31,6 +31,7 @@ class HabitCreate(HabitBase):
 
 class HabitRead(HabitBase):
     id: str
+    user_id: str
     created_at: datetime
     updated_at: datetime
 
@@ -41,6 +42,7 @@ class HabitRead(HabitBase):
 # New class: HabitResponse with only id, created_at, updated_at
 class HabitResponse(BaseModel):
     id: str
+    user_id: str
     created_at: datetime
     updated_at: datetime
 

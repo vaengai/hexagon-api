@@ -1,6 +1,7 @@
 from app.database import Base
 import uuid
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -9,19 +10,22 @@ class Habit(Base):
     __tablename__ = "habits"
 
     id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
-    title = Column(String)
-    status = Column(String)
-    category = Column(String)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    category = Column(String, nullable=False)
     progress = Column(Integer)
-    target = Column(Integer)
-    frequency = Column(String)
-    active = Column(Boolean)
+    target = Column(Integer, nullable=False)
+    frequency = Column(String, nullable=False)
+    active = Column(Boolean, nullable=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
     )
+
+    user = relationship("HexagonUser", back_populates="habits")
 
 
 class HexagonUser(Base):
@@ -37,3 +41,4 @@ class HexagonUser(Base):
         default=datetime.now(timezone.utc),
         onupdate=datetime.now(timezone.utc),
     )
+    habits = relationship("Habit", back_populates="user", cascade="all, delete-orphan")

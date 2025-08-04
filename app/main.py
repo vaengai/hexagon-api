@@ -41,7 +41,10 @@ def create_habit(habit: HabitCreate, db: Session = Depends(get_db), user=Depends
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Habit with title '{habit.title}' already exists."
         )
-    new_habit = Habit(**habit.dict())
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    new_habit = Habit(**habit.dict(),
+                      user_id=local_user.id)
     db.add(new_habit)
     db.commit()
     db.refresh(new_habit)
@@ -54,13 +57,17 @@ def create_habit(habit: HabitCreate, db: Session = Depends(get_db), user=Depends
 @router.get("/habit", response_model=List[HabitRead])
 def get_habits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Retrieving habits {skip}/{limit}")
-    return db.query(Habit).offset(skip).limit(limit).all()
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    return db.query(Habit).filter(Habit.user_id == local_user.id).offset(skip).limit(limit).all()
 
 
 @router.get("/habit/{habit_id}", response_model=HabitRead)
 def get_habit(habit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Retrieving habit {habit_id}")
-    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == local_user.id).first()
     if not habit:
         logger.info(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
@@ -70,7 +77,9 @@ def get_habit(habit_id: str, db: Session = Depends(get_db), user=Depends(get_cur
 @router.patch("/habit/{habit_id}/status/{status}", response_model=HabitRead)
 def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Updating status of habit {habit_id} to {status}")
-    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == local_user.id).first()
     if not habit:
         logger.info(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
@@ -85,7 +94,9 @@ def update_status(habit_id: str, status: HabitStatus, db: Session = Depends(get_
 @router.patch("/habit/{id}/toggle-active", response_model=HabitRead)
 def toggle_status(id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
     logger.info(f"Toggling 'active' state of habit {id}")
-    habit = db.query(Habit).filter(Habit.id == id).first()
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    habit = db.query(Habit).filter(Habit.id == id, Habit.user_id == local_user.id).first()
     if not habit:
         logger.info(f"Habit with id {id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
@@ -96,16 +107,24 @@ def toggle_status(id: str, db: Session = Depends(get_db), user=Depends(get_curre
     return habit
 
 @router.put("/habit/{habit_id}", response_model=HabitRead)
-def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
-    logger.info(f"Updating habit {habit_id}")
-    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+def update_habit(
+    habit_id: str,
+    habit_update: HabitCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    token=Depends(security)
+):
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+    habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == local_user.id).first()
     if not habit:
-        logger.info(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
 
-    existing = db.query(Habit).filter(Habit.title.ilike(habit_update.title.strip()), Habit.id != habit_id).first()
+    existing = db.query(Habit).filter(
+        Habit.title.ilike(habit_update.title.strip()),
+        Habit.id != habit_id,
+        Habit.user_id == local_user.id
+    ).first()
     if existing:
-        logger.warning(f"Habit with id {habit_id} already exists")
         raise HTTPException(
             status_code=400,
             detail=f"Habit with title '{habit_update.title}' already exists."
@@ -113,23 +132,29 @@ def update_habit(habit_id: str, habit_update: HabitCreate, db: Session = Depends
 
     for key, value in habit_update.dict().items():
         setattr(habit, key, value)
+
     db.commit()
     db.refresh(habit)
-    logger.info(f"Updated habit {habit_id} with id {habit_id}")
     return habit
 
 
+
 @router.delete("/habit/{habit_id}", status_code=status.HTTP_200_OK)
-def delete_habit(habit_id: str, db: Session = Depends(get_db), user=Depends(get_current_user), token=Depends(security)):
-    logger.info(f"Deleting habit {habit_id}")
-    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+def delete_habit(
+    habit_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    token=Depends(security)
+):
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+    habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == local_user.id).first()
     if not habit:
-        logger.warning(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
+
     db.delete(habit)
     db.commit()
-    logger.info(f"Deleted habit {habit_id}")
     return {"message": f"Habit {habit_id} deleted successfully"}
+
 
 @router.get("/profile")
 def get_profile(user=Depends(get_current_user), db: Session = Depends(get_db), token=Depends(security)):

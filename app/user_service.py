@@ -7,13 +7,16 @@ logger = logging.getLogger("hexagon")
 
 def get_or_create_local_user(clerk_user_id: str, db: Session) -> HexagonUser:
     local_user = db.query(HexagonUser).filter_by(id=clerk_user_id).first()
+    logger.info(f"User {local_user}")
     if not local_user:
-        clerk_user = clerk.users.get_user(clerk_user_id)
+        logger.info(f"Creating new user {clerk_user_id}")
+        clerk_user = clerk.users.get(user_id=clerk_user_id)
+        logger.info(f"User {clerk_user}")
         local_user = HexagonUser(
             id=clerk_user_id,
             email=clerk_user.email_addresses[0].email_address,
             full_name=f"{clerk_user.first_name} {clerk_user.last_name}",
-            clerk_metadata=clerk_user.metadata,
+            clerk_metadata=clerk_user.public_metadata,
         )
         db.add(local_user)
         db.commit()
