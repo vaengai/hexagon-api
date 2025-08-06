@@ -5,6 +5,7 @@ logger = logging.getLogger('hexagon')
 
 def configure_logging():
     logger.setLevel(logging.INFO)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
