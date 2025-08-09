@@ -5,8 +5,8 @@
 ### 1. Create and activate virtual environment (optional but recommended)
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
 ### 2. Install dependencies
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ```
 
----
+## uvicorn app.main:app --reload
 
 ## 🐳 Running with Docker
 
