@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
+from app.auth_secure import get_current_user
 from app.database import Base, engine, get_db
 from app.models import Habit
 from app.schemas import HabitRead, HabitCreate, HabitStatus
