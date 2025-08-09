@@ -25,8 +25,17 @@ coverage.xml
 .pytest_cache/
 .mypy_cache/
 .vscode/
-#.env.local
-#.env.*
+
+# ------------------------
+# Environment Files (CRITICAL)
+# ------------------------
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+.env.docker
+!.env.example
 
 # ------------------------
 # FastAPI / Uvicorn / Starlette
