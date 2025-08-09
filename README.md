@@ -18,7 +18,7 @@ pip install -r requirements.txt
 ### 3. Run the application locally
 
 ```bash
-uvicorn main:app --reload --app-dir app
+
 ```
 
 ---

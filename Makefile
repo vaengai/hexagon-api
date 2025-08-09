@@ -1,7 +1,7 @@
 # Project Settings
 PROJECT_NAME=hexagon
 PYTHON=python3
-VENV=venv
+VENV=.venv
 ACTIVATE=. $(VENV)/bin/activate
 
 # Default target
@@ -15,7 +15,7 @@ help:
 	@echo "  run            Run Streamlit app"
 	@echo "  test           Run tests"
 	@echo "  lint           Run flake8 linter"
-	@echo "  clean          Remove temporary files"
+	@echo "  clean          Remove temporary files
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -24,13 +24,13 @@ install:
 	$(ACTIVATE) && pip install -r requirements.txt
 
 run:
-	$(ACTIVATE) && uvicorn main:app --reload --app-dir app
+	$(ACTIVATE) && uvicorn app.main:app --reload
 
 test:
 	$(ACTIVATE) && pytest tests/
 
 lint:
-	$(ACTIVATE) && flake8 .
+	$(ACTIVATE) && flake8 app tasks tests
 
 clean:
 	rm -rf __pycache__ .pytest_cache .mypy_cache $(VENV)

@@ -1,11 +1,13 @@
-from pydantic import BaseModel, Field, constr, conint, root_validator
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 from enum import Enum
 
+
 class HabitStatus(str, Enum):
     pending = "Pending"
     done = "Done"
+
 
 class HabitFrequency(str, Enum):
     daily = "Day"
@@ -14,14 +16,13 @@ class HabitFrequency(str, Enum):
 
 
 class HabitBase(BaseModel):
-    title: constr(min_length=1, max_length=100)
+    title: str = Field(..., min_length=1, max_length=100)
     status: HabitStatus
-    category: constr(min_length=1, max_length=100)
+    category: str = Field(..., min_length=1, max_length=100)
     progress: int
-    target: conint(gt=0)
+    target: int = Field(..., gt=0)
     frequency: HabitFrequency
     active: bool
-
 
 
 class HabitCreate(HabitBase):

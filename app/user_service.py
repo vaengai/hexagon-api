@@ -1,9 +1,8 @@
 from sqlalchemy.orm import Session
 from app.clerk_client import clerk
 from app.models import HexagonUser
-import logging
+from app.logging_config import logger
 
-logger = logging.getLogger("hexagon")
 
 def get_or_create_local_user(clerk_user_id: str, db: Session) -> HexagonUser:
     local_user = db.query(HexagonUser).filter_by(id=clerk_user_id).first()

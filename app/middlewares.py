@@ -1,5 +1,4 @@
 from fastapi import Request
-import logging
 from app.logging_config import logger
 import time
 import uuid
@@ -7,12 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
-logger = logging.getLogger("hexagon")
-
-origins = [
-    "http://localhost:5173",
-    "https://hexagon-1ny1.onrender.com"
-]
+origins = ["http://localhost:5173", "https://hexagon-1ny1.onrender.com"]
 
 
 async def log_request(request: Request, call_next):
@@ -35,11 +29,14 @@ class ExceptionMiddleware(BaseHTTPMiddleware):
         try:
             return await call_next(request)
         except Exception as e:
-            logger.exception(f"Exception occurred on {request.method} {request.url.path}")
+            logger.exception(
+                f"Exception occurred on {request.method} {request.url.path}"
+            )
             return JSONResponse(
                 status_code=500,
                 content={"message": str(e)},
             )
+
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -47,12 +44,16 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request.state.request_id = request_id
 
         start_time = time.time()
-        logger.info(f"[{request_id}] Request started: {request.method} {request.url.path}")
+        logger.info(
+            f"[{request_id}] Request started: {request.method} {request.url.path}"
+        )
 
         response = await call_next(request)
 
         process_time = time.time() - start_time
-        logger.info(f"[{request_id}] Request completed in {process_time:.4f}s with status {response.status_code}")
+        logger.info(
+            f"[{request_id}] Request completed in {process_time:.4f}s with status {response.status_code}"
+        )
 
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time"] = f"{process_time:.4f}s"
@@ -61,8 +62,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
 def register_middleware(app):
 
-    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
-                       allow_headers=["*"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(ExceptionMiddleware)
     app.add_middleware(RequestContextMiddleware)
-
