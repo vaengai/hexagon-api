@@ -9,7 +9,6 @@ clerk-backend-api==3.1.11
 clerk-sdk==0.2.8
 click==8.2.1
 cryptography==45.0.5
-ecdsa==0.19.1
 fastapi==0.116.1
 fastapi-crudrouter==0.8.6
 flake8==7.3.0
@@ -35,7 +34,6 @@ Pygments==2.19.2
 PyJWT==2.10.1
 pytest==8.4.1
 python-dotenv==1.1.1
-python-jose==3.5.0
 requests==2.32.4
 rsa==4.9.1
 six==1.17.0

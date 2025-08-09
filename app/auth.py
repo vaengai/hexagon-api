@@ -1,10 +1,12 @@
 import requests
-from jose import jwt
-from jose.exceptions import JWTError
+import jwt
+from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from functools import lru_cache
 from app.logging_config import logger
+import json
+from cryptography.hazmat.primitives import serialization
 
 security = HTTPBearer()
 

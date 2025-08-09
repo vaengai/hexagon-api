@@ -1,4 +1,13 @@
 # ------------------------
+# Deployment configs for other platforms (using Render)
+# ------------------------
+railway.toml
+.do/
+*deployment-guide.md
+digitalocean-deployment-guide.md
+aws-deployment-guide.md
+
+# ------------------------
 # OS / System
 # ------------------------
 .DS_Store
