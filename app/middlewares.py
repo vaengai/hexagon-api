@@ -6,7 +6,11 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = ["http://localhost:5173", "https://hexagon-1ny1.onrender.com"]
+origins = [
+    "http://localhost:5173",
+    "https://hexagon-1ny1.onrender.com",
+    "https://hexagon-orpin.vercel.app",
+]
 
 
 async def log_request(request: Request, call_next):

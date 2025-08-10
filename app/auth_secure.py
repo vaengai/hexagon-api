@@ -86,21 +86,29 @@ def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
         # Convert JWK to PEM format
         public_key_pem = rsa_key_from_jwk(key)
 
-        # Decode and validate JWT
+        # For Clerk tokens, audience verification can be problematic
+        # as Clerk doesn't always include the 'aud' claim or uses frontend URL
+        audience_to_verify = None
+        verification_options = {
+            "verify_signature": True,
+            "verify_exp": True,
+            "verify_nbf": True,
+            "verify_iat": True,
+            "verify_aud": False,  # Disable by default for Clerk
+            "verify_iss": True,
+        }
+
+        # If you want to verify audience, uncomment and set the correct value:
+        # audience_to_verify = "your-frontend-domain.com"  # or AUDIENCE
+        # verification_options["verify_aud"] = True
+
         payload = jwt.decode(
             token.credentials,
             public_key_pem,
             algorithms=ALGORITHMS,
-            audience=AUDIENCE,
+            audience=audience_to_verify,
             issuer=ISSUER,
-            options={
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_nbf": True,
-                "verify_iat": True,
-                "verify_aud": True,
-                "verify_iss": True,
-            },
+            options=verification_options,
         )
 
         logger.info(f"Successfully authenticated user: {payload.get('sub', 'unknown')}")
