@@ -18,10 +18,7 @@ JWKS_URL = os.getenv(
     "https://pleased-hedgehog-10.clerk.accounts.dev/.well-known/jwks.json",
 )
 ALGORITHMS = ["RS256"]
-AUDIENCE = os.getenv(
-    "CLERK_PUBLISHABLE_KEY",
-    "pk_test_cGxlYXNlZC1oZWRnZWhvZy0xMC5jbGVyay5hY2NvdW50cy5kZXYk",
-)
+
 ISSUER = os.getenv("CLERK_ISSUER", "https://pleased-hedgehog-10.clerk.accounts.dev")
 
 

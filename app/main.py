@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from typing import List
 from app.logging_config import logger
@@ -5,11 +6,11 @@ from fastapi import HTTPException, status, Depends, APIRouter, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
-
 from app.auth_secure import get_current_user
 from app.database import Base, engine, get_db
 from app.models import Habit
 from app.schemas import HabitRead, HabitCreate, HabitStatus
+from datetime import datetime, timedelta
 
 from app.middlewares import register_middleware
 from app.user_service import get_or_create_local_user
@@ -40,7 +41,6 @@ async def lifespan(app: FastAPI):
         )
 
         # Run once immediately for testing if enabled via environment variable
-        import os
 
         if os.getenv("RUN_INITIAL_RESET", "false").lower() == "true":
             logger.info(
@@ -192,12 +192,40 @@ def update_status(
     if not habit:
         logger.info(f"Habit with id {habit_id} not found")
         raise HTTPException(status_code=404, detail="Habit not found")
-    if habit.status != HabitStatus.done.value and status == HabitStatus.done:
-        habit.progress = habit.progress + 1
+
+    # Store previous status for comparison
+    previous_status = habit.status
+    current_progress = habit.progress or 0
+
+    # Handle progress increment/decrement logic
+    if (
+        previous_status != HabitStatus.done.value
+        and status.value == HabitStatus.done.value
+    ):
+        # Moving from not-done to done: increment progress
+        habit.progress = current_progress + 1
+        logger.info(f"Incremented progress for habit {habit_id}: {habit.progress}")
+    elif (
+        previous_status == HabitStatus.done.value
+        and status.value != HabitStatus.done.value
+    ):
+        # Moving from done to not-done: decrement progress (with minimum of 0)
+        habit.progress = max(0, current_progress - 1)
+        logger.info(f"Decremented progress for habit {habit_id}: {habit.progress}")
+
+    # Validate status transition
+    if status.value == HabitStatus.done.value and not habit.active:
+        logger.warning(f"Attempting to mark inactive habit {habit_id} as done")
+        raise HTTPException(
+            status_code=400, detail="Cannot mark inactive habit as done"
+        )
+
+    # Update the status
     habit.status = status.value
     db.commit()
     db.refresh(habit)
-    logger.info(f"Updated habit {habit_id} with status {status}")
+
+    logger.info(f"Updated habit {habit_id} from {previous_status} to {status.value}")
     return habit
 
 
@@ -317,6 +345,36 @@ def manual_reset_habits(user=Depends(get_current_user), token=Depends(security))
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to reset habits: {str(e)}",
         )
+
+
+@router.get("/bulk/habits/{num_days}")
+def fetch_last_x_days_habits(
+    num_days: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+    token=Depends(security),
+):
+    logger.info(f"Bulk Retrieving habits for {num_days}")
+    local_user = get_or_create_local_user(clerk_user_id=user["sub"], db=db)
+
+    cutoff_date = datetime.now() - timedelta(days=num_days)
+
+    habits = (
+        db.query(Habit)
+        .filter(Habit.user_id == local_user.id)
+        .filter(Habit.created_at > cutoff_date)
+        .all()
+    )
+
+    # Group habits by date
+    habits_by_date = {}
+    for habit in habits:
+        date_key = habit.created_at.date().isoformat()
+        if date_key not in habits_by_date:
+            habits_by_date[date_key] = []
+        habits_by_date[date_key].append(habit)
+
+    return habits_by_date
 
 
 app.include_router(router)
