@@ -1,5 +1,5 @@
 def main():
-    print("Hello from hexagon-mcp-server!")
+    print("Hello from mcp-hexagon!")
 
 
 if __name__ == "__main__":
