@@ -156,7 +156,11 @@ async def get_habits(
         else:
             logger.info(f"Retrieved habits data: {type(result)}")
 
-    return result
+    return {
+        "habits": result,
+        "count": len(result),
+        "message": f"Found {len(result)} habits",
+    }
 
 
 @mcp.tool()
