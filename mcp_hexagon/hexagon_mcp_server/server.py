@@ -31,7 +31,7 @@ DEFAULT_BEARER = os.getenv("HEXAGON_API_BEARER")
 
 mcp = FastMCP(name="hexagon-mcp")
 
-# Remove the global client - create fresh clients for each request
+# Singleton HTTP client - created only when needed
 _http_client: Optional[httpx.AsyncClient] = None
 
 
@@ -48,37 +48,43 @@ def _auth_headers(bearer_override: Optional[str] = None) -> Dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _create_client() -> httpx.AsyncClient:
-    """Create a new HTTP client for each request."""
-    logger.debug(f"Creating new HTTP client for base URL: {BASE_URL}")
-    return httpx.AsyncClient(
-        base_url=BASE_URL,
-        timeout=httpx.Timeout(30.0, read=30.0, connect=10.0),
-    )
+async def _get_client() -> httpx.AsyncClient:
+    """Get or create the singleton HTTP client."""
+    global _http_client
+
+    if _http_client is None:
+        logger.info(f"Creating HTTP client for base URL: {BASE_URL}")
+        _http_client = httpx.AsyncClient(
+            base_url=BASE_URL,
+            timeout=httpx.Timeout(30.0, read=30.0, connect=10.0),
+        )
+        logger.debug("HTTP client created successfully")
+    else:
+        logger.debug("Reusing existing HTTP client")
+
+    return _http_client
 
 
 async def _make_request(
     method: str, endpoint: str, bearer_token: Optional[str] = None, **kwargs
 ) -> Dict[str, Any]:
-    """Make a safe HTTP request with proper client management."""
+    """Make a safe HTTP request with shared client."""
     try:
         headers = _auth_headers(bearer_token)
-        async with _create_client() as client:
-            # Update headers for this request
-            client.headers.update(headers)
+        client = await _get_client()
 
-            logger.debug(f"Making {method} request to {endpoint}")
-            r = await client.request(method, endpoint, **kwargs)
-            logger.debug(f"Response status: {r.status_code}")
-            r.raise_for_status()
+        logger.debug(f"Making {method} request to {endpoint}")
+        r = await client.request(method, endpoint, headers=headers, **kwargs)
+        logger.debug(f"Response status: {r.status_code}")
+        r.raise_for_status()
 
-            # Handle different response types
-            if r.content:
-                result = r.json()
-            else:
-                result = {"message": "Success"}
+        # Handle different response types
+        if r.content:
+            result = r.json()
+        else:
+            result = {"message": "Success"}
 
-            return result
+        return result
 
     except httpx.HTTPStatusError as e:
         logger.error(
@@ -99,6 +105,15 @@ async def _make_request(
             f"Unexpected error for {method} {endpoint}: {str(e)}", exc_info=True
         )
         return {"error": f"Unexpected error: {str(e)}"}
+
+
+async def _close_client():
+    """Close the HTTP client when shutting down."""
+    global _http_client
+    if _http_client is not None:
+        logger.info("Closing HTTP client")
+        await _http_client.aclose()
+        _http_client = None
 
 
 def safe_api_call(
@@ -149,17 +164,83 @@ async def get_habits(
     params = {"skip": skip, "limit": limit}
     result = await _make_request("GET", "/habit", bearer_token, params=params)
 
-    if "error" not in result:
-        # Log summary info
-        if isinstance(result, list):
-            logger.info(f"Retrieved {len(result)} habits")
-        else:
-            logger.info(f"Retrieved habits data: {type(result)}")
+    if "error" in result:
+        return result
+
+    # API returns a plain array, wrap it in a structured response
+    if isinstance(result, list):
+        habits_data = result
+        logger.info(f"Retrieved {len(habits_data)} habits")
+
+        # Count active vs inactive habits
+        active_habits = [h for h in habits_data if h.get("active", False)]
+        inactive_habits = [h for h in habits_data if not h.get("active", False)]
+
+        # Count by status
+        status_counts = {}
+        for habit in habits_data:
+            status = habit.get("status", "Unknown")
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        return {
+            "success": True,
+            "total_habits": len(habits_data),
+            "active_habits_count": len(active_habits),
+            "inactive_habits_count": len(inactive_habits),
+            "status_breakdown": status_counts,
+            "habits": habits_data,
+            "pagination": {"skip": skip, "limit": limit, "returned": len(habits_data)},
+            "message": f"Successfully retrieved {len(habits_data)} habits",
+        }
+    else:
+        logger.warning(f"Unexpected response type: {type(result)}")
+        return {
+            "error": f"Expected array but got {type(result)}",
+            "raw_response": str(result)[:200],
+        }
+
+
+@mcp.tool()
+async def get_active_habits(bearer_token: Optional[str] = None) -> Dict[str, Any]:
+    """Get only active habits with summary information."""
+    logger.info("Getting active habits only")
+
+    # Get all habits first
+    all_habits_result = await get_habits(bearer_token, skip=0, limit=1000)
+
+    if "error" in all_habits_result:
+        return all_habits_result
+
+    # Filter for active habits
+    all_habits = all_habits_result.get("habits", [])
+    active_habits = [habit for habit in all_habits if habit.get("active", False)]
+
+    # Group by status
+    pending = [h for h in active_habits if h.get("status") == "Pending"]
+    done = [h for h in active_habits if h.get("status") == "Done"]
+    in_progress = [h for h in active_habits if h.get("status") == "In Progress"]
+
+    # Group by category
+    categories = {}
+    for habit in active_habits:
+        category = habit.get("category", "Unknown")
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(habit)
 
     return {
-        "habits": result,
-        "count": len(result),
-        "message": f"Found {len(result)} habits",
+        "success": True,
+        "active_habits": active_habits,
+        "summary": {
+            "total_active": len(active_habits),
+            "pending": len(pending),
+            "done": len(done),
+            "in_progress": len(in_progress),
+            "categories": {cat: len(habits) for cat, habits in categories.items()},
+        },
+        "by_status": {"pending": pending, "done": done, "in_progress": in_progress},
+        "by_category": categories,
+        "message": f"Found {len(active_habits)} active habits",
     }
 
 
@@ -297,6 +378,11 @@ def main():
         logger.error(f"MCP server crashed: {str(e)}", exc_info=True)
         raise
     finally:
+        # Clean up the HTTP client on shutdown
+        import asyncio
+
+        if _http_client is not None:
+            asyncio.create_task(_close_client())
         logger.info("MCP server shutdown complete")
 
 
