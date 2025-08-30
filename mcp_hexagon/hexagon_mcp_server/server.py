@@ -46,16 +46,35 @@ async def get_habits(
 
 
 @mcp.tool(
-    name="create_habit", description="Create a new habit with title and description."
+    name="create_habit", description="Create a new habit with all required fields."
 )
 async def create_habit(
-    title: str, description: str, bearer_token: Optional[str] = None
+    title: str,
+    description: str,
+    category: str,
+    target: int,
+    frequency: str,
+    status: str = "Pending",
+    active: bool = True,
+    progress: int = 0,
+    bearer_token: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Create a new habit with the given title and description."""
-    logger.info(f"Creating new habit: '{title}'")
-    logger.debug(f"Habit description: {description}")
+    """Create a new habit with all required fields."""
+    logger.info(f"Creating new habit: '{title}' in category '{category}'")
+    logger.debug(
+        f"Habit details: {description}, target={target}, frequency={frequency}, status={status}, active={active}, progress={progress}"
+    )
 
-    data = {"title": title, "description": description}
+    data = {
+        "title": title,
+        "description": description,
+        "category": category,
+        "target": target,
+        "frequency": frequency,
+        "status": status,
+        "active": active,
+        "progress": progress,
+    }
     result = await _make_request("POST", "/habit", bearer_token, json=data)
 
     if "error" not in result:
